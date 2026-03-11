@@ -1,96 +1,153 @@
-'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { supabase } from '../lib/supabase'
+'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase';
 
 export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const router = useRouter();
+  const [email, setEmail]       = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState('');
 
-  async function handleLogin(e) {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setError('Email ou mot de passe incorrect')
-      setLoading(false)
-    } else {
-      router.push('/dashboard')
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    const supabase = createClient();
+
+    // 1. Connexion Supabase Auth
+    const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    if (authError) {
+      setError('Email ou mot de passe incorrect.');
+      setLoading(false);
+      return;
     }
-  }
+
+    const userId = data.user.id;
+
+    // 2. Chercher le profil
+    let { data: profile } = await supabase
+      .from('profiles')
+      .select('role, nom, prenoms, actif, direction_code')
+      .eq('id', userId)
+      .single();
+
+    // 3. Si profil inexistant → le créer automatiquement
+    if (!profile) {
+      const { data: newProfile } = await supabase
+        .from('profiles')
+        .insert({ id: userId, email: data.user.email, role: 'agent', actif: true })
+        .select()
+        .single();
+      profile = newProfile;
+    }
+
+    // 4. Compte désactivé
+    if (!profile || profile.actif === false) {
+      await supabase.auth.signOut();
+      setError('Compte désactivé. Contactez l\'administrateur.');
+      setLoading(false);
+      return;
+    }
+
+    // 5. Redirection selon le rôle
+    if (profile.role === 'agent') {
+      router.push('/workspace');
+    } else {
+      router.push('/dashboard');
+    }
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden px-4"
-      style={{ background: 'radial-gradient(ellipse at 20% 50%, rgba(201,168,76,0.07) 0%, transparent 60%), #0B1829' }}>
+    <div style={{
+      position: 'fixed', inset: 0,
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #0d9488 100%)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: "'Segoe UI', system-ui, sans-serif"
+    }}>
+      <div style={{ display: 'flex', borderRadius: 20, overflow: 'hidden', boxShadow: '0 40px 100px rgba(0,0,0,0.5)', width: 820, maxWidth: '95vw' }}>
 
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: 'repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(201,168,76,1) 40px,rgba(201,168,76,1) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(201,168,76,1) 40px,rgba(201,168,76,1) 41px)'
-      }}/>
-
-      <div className="relative w-full max-w-md">
-        <div className="text-center mb-8 animate-fade-up">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
-            style={{ background: 'rgba(201,168,76,0.12)', border: '1px solid rgba(201,168,76,0.3)' }}>
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="#C9A84C" strokeWidth="1.5" strokeLinejoin="round"/>
-              <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="#C9A84C" strokeWidth="1.5" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <h1 className="font-display text-4xl font-black mb-1 gold-shimmer">SyGRH</h1>
-          <p className="text-xs tracking-[0.3em] uppercase" style={{ color: '#8A9BB5' }}>
-            Ministère des Sports &amp; Loisirs
+        {/* BRAND */}
+        <div style={{ background: 'linear-gradient(160deg, #1e3a8a, #0d9488)', padding: '48px 40px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', color: '#fff' }}>
+          <div style={{ fontSize: 56, marginBottom: 20 }}>🏛️</div>
+          <h1 style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.5px', margin: 0 }}>SyGRH · MDCJS</h1>
+          <p style={{ opacity: .7, fontSize: 13, marginTop: 8, lineHeight: 1.6 }}>
+            Système de Gestion des Ressources Humaines<br />
+            Ministère des Sports &amp; Loisirs — Togo
           </p>
-          <div className="divider-gold mt-3 mx-auto w-20"/>
+          <div style={{ display: 'flex', gap: 20, marginTop: 32 }}>
+            {[{ val: '281', lbl: 'Agents' }, { val: '24', lbl: 'Directions' }, { val: '3', lbl: 'Rôles' }].map(s => (
+              <div key={s.lbl} style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 800 }}>{s.val}</div>
+                <div style={{ fontSize: 10, opacity: .6, textTransform: 'uppercase', letterSpacing: .5 }}>{s.lbl}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 32, borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: 20 }}>
+            <div style={{ fontSize: 10, opacity: .5, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10 }}>Niveaux d'accès</div>
+            {[
+              { role: 'Admin',     icon: '🔐', desc: 'Accès complet' },
+              { role: 'Directeur', icon: '👔', desc: 'Sa direction' },
+              { role: 'Agent',     icon: '👤', desc: 'Son espace' },
+            ].map(r => (
+              <div key={r.role} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: 16 }}>{r.icon}</span>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700 }}>{r.role}</div>
+                  <div style={{ fontSize: 11, opacity: .6 }}>{r.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="glass rounded-2xl p-8 animate-fade-up2">
-          <h2 className="font-display text-xl mb-1">Connexion</h2>
-          <p className="text-sm mb-6" style={{ color: '#8A9BB5' }}>Accédez à votre espace sécurisé</p>
+        {/* FORM */}
+        <div style={{ background: '#fff', padding: '48px 40px', width: 380, flexShrink: 0 }}>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1e293b', margin: '0 0 4px' }}>Connexion</h2>
+          <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 28px' }}>Entrez vos identifiants pour accéder</p>
 
           {error && (
-            <div className="mb-4 px-4 py-3 rounded-lg text-sm"
-              style={{ background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.3)', color: '#fca5a5' }}>
-              {error}
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 16 }}>
+              ⚠️ {error}
             </div>
           )}
 
           <form onSubmit={handleLogin}>
-            <div className="mb-4">
-              <label className="block text-xs tracking-widest uppercase mb-2" style={{ color: '#8A9BB5' }}>
-                Adresse email
-              </label>
-              <input
-                type="email" value={email} onChange={e => setEmail(e.target.value)}
-                required placeholder="agent@mdcjs.tg"
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                style={{ background: 'rgba(11,24,41,0.8)', border: '1px solid rgba(201,168,76,0.2)', color: '#F5F0E8' }}
-              />
-            </div>
-            <div className="mb-6">
-              <label className="block text-xs tracking-widest uppercase mb-2" style={{ color: '#8A9BB5' }}>
-                Mot de passe
-              </label>
-              <input
-                type="password" value={password} onChange={e => setPassword(e.target.value)}
-                required placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                style={{ background: 'rgba(11,24,41,0.8)', border: '1px solid rgba(201,168,76,0.2)', color: '#F5F0E8' }}
-              />
-            </div>
-            <button type="submit" disabled={loading} className="btn-gold w-full py-3 rounded-xl text-sm tracking-wider">
-              {loading ? 'Connexion en cours...' : 'SE CONNECTER'}
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 5 }}>
+              Adresse email
+            </label>
+            <input
+              type="email" value={email} onChange={e => setEmail(e.target.value)} required
+              placeholder="votre.email@mdcjs.tg"
+              style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '11px 14px', fontSize: 14, outline: 'none', background: '#fafafa', color: '#1e293b', boxSizing: 'border-box', marginBottom: 16 }}
+            />
+
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: .5, marginBottom: 5 }}>
+              Mot de passe
+            </label>
+            <input
+              type="password" value={password} onChange={e => setPassword(e.target.value)} required
+              placeholder="••••••••"
+              style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '11px 14px', fontSize: 14, outline: 'none', background: '#fafafa', color: '#1e293b', boxSizing: 'border-box', marginBottom: 24 }}
+            />
+
+            <button type="submit" disabled={loading}
+              style={{ width: '100%', background: loading ? '#94a3b8' : 'linear-gradient(135deg, #1e40af, #0d9488)', color: '#fff', border: 'none', borderRadius: 10, padding: '13px', fontSize: 14, fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer' }}>
+              {loading ? '⏳ Connexion...' : '🔐 SE CONNECTER'}
             </button>
           </form>
-        </div>
 
-        <p className="text-center text-xs mt-5 animate-fade-up3" style={{ color: '#4a5568' }}>
-          SyGRH_MDCJS © 2026 — Plateforme sécurisée
-        </p>
+          <div style={{ marginTop: 24, padding: '14px', background: '#f8fafc', borderRadius: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6 }}>ℹ️ Accès</div>
+            <div style={{ fontSize: 11, color: '#94a3b8', lineHeight: 1.6 }}>
+              Votre compte est créé par l'administrateur.<br />
+              Pour toute demande : contactez la DRH.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  )
+  );
 }
