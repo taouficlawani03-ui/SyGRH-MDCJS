@@ -150,18 +150,18 @@ export default function SyGRH() {
       </div>
 
       {/* Nav Tabs */}
-      <div style={{ background:'#1e40af', display:'flex', padding:'0 16px', gap:4, overflowX:'auto', flexWrap:'nowrap' }}>
+      <div style={{ background:'#1e3a8a', display:'flex', padding:'8px 16px', gap:6, overflowX:'auto', flexWrap:'nowrap', alignItems:'center' }}>
+        <span style={{ color:'#93c5fd', fontSize:11, fontWeight:700, marginRight:8, whiteSpace:'nowrap' }}>NAVIGATION ▶</span>
         {visibleTabs.map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-            background: activeTab===t.id ? '#fff' : 'transparent',
-            border:'none',
-            borderRadius: activeTab===t.id ? '8px 8px 0 0' : '0',
-            padding:'14px 20px', cursor:'pointer', fontWeight:700,
-            fontSize:14, color: activeTab===t.id ? '#1e40af' : '#bfdbfe', whiteSpace:'nowrap',
-            display:'flex', alignItems:'center', gap:8, transition:'all .15s',
-            marginTop: activeTab===t.id ? '6px' : '0',
+            background: activeTab===t.id ? '#fff' : 'rgba(255,255,255,0.1)',
+            border: activeTab===t.id ? 'none' : '1px solid rgba(255,255,255,0.2)',
+            borderRadius: 8,
+            padding:'10px 18px', cursor:'pointer', fontWeight:700,
+            fontSize:13, color: activeTab===t.id ? '#1e3a8a' : '#e0f2fe', whiteSpace:'nowrap',
+            display:'flex', alignItems:'center', gap:6,
           }}>
-            <span style={{fontSize:18}}>{t.icon}</span> {t.label}
+            <span style={{fontSize:16}}>{t.icon}</span> {t.label}
           </button>
         ))}
       </div>
@@ -1144,17 +1144,16 @@ function TabFichiers({ supabase, profile }) {
   return (
     <div>
       <div style={{ fontWeight:900, fontSize:18, color:'#0f172a', marginBottom:16 }}>📁 Gestionnaire de fichiers</div>
-      <div style={{ display:'grid', gridTemplateColumns:'160px 1fr', gap:16 }}>
-        {/* Dossiers */}
-        <div style={{ background:'#fff', borderRadius:14, border:'1px solid #e2e8f0', overflow:'hidden' }}>
-          <div style={{ padding:'12px 14px', fontSize:12, fontWeight:800, color:'#64748b', borderBottom:'1px solid #e2e8f0', background:'#f8fafc' }}>DOSSIERS</div>
-          {FOLDERS.map(f => (
-            <div key={f} onClick={() => setFolder(f)}
-              style={{ padding:'11px 14px', cursor:'pointer', fontSize:12, fontWeight: folder===f ? 800 : 600, color: folder===f ? '#1e40af' : '#475569', background: folder===f ? '#eff6ff' : '#fff', borderRight: folder===f ? '3px solid #1e40af' : 'none', borderBottom:'1px solid #f8fafc' }}>
-              📂 {f}
-            </div>
-          ))}
-        </div>
+      {/* Sélecteur dossier en dropdown */}
+      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16, background:'#fff', padding:'12px 16px', borderRadius:12, border:'1px solid #e2e8f0' }}>
+        <span style={{ fontWeight:700, fontSize:13, color:'#475569' }}>📂 Dossier :</span>
+        <select value={folder} onChange={e => setFolder(e.target.value)}
+          style={{ padding:'8px 14px', borderRadius:8, border:'1px solid #cbd5e1', fontSize:13, fontWeight:600, color:'#1e293b', background:'#f8fafc', cursor:'pointer', minWidth:200 }}>
+          {FOLDERS.map(f => <option key={f} value={f}>📂 {f}</option>)}
+        </select>
+        <span style={{ fontSize:12, color:'#94a3b8' }}>{files.length} fichier{files.length>1?'s':''}</span>
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr', gap:16 }}>
 
         {/* Fichiers */}
         <div style={{ background:'#fff', borderRadius:14, border:'1px solid #e2e8f0', overflow:'hidden' }}>
