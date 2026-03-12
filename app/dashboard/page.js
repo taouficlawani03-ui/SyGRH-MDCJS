@@ -150,15 +150,18 @@ export default function SyGRH() {
       </div>
 
       {/* Nav Tabs */}
-      <div style={{ background:'#fff', borderBottom:'1px solid #e2e8f0', display:'flex', padding:'0 20px', gap:2, overflowX:'auto' }}>
+      <div style={{ background:'#1e40af', display:'flex', padding:'0 16px', gap:4, overflowX:'auto', flexWrap:'nowrap' }}>
         {visibleTabs.map(t => (
           <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-            background:'transparent', border:'none', borderBottom: activeTab===t.id ? '3px solid #1e40af' : '3px solid transparent',
-            padding:'14px 18px', cursor:'pointer', fontWeight: activeTab===t.id ? 800 : 600,
-            fontSize:13, color: activeTab===t.id ? '#1e40af' : '#64748b', whiteSpace:'nowrap',
-            display:'flex', alignItems:'center', gap:6, transition:'all .15s'
+            background: activeTab===t.id ? '#fff' : 'transparent',
+            border:'none',
+            borderRadius: activeTab===t.id ? '8px 8px 0 0' : '0',
+            padding:'14px 20px', cursor:'pointer', fontWeight:700,
+            fontSize:14, color: activeTab===t.id ? '#1e40af' : '#bfdbfe', whiteSpace:'nowrap',
+            display:'flex', alignItems:'center', gap:8, transition:'all .15s',
+            marginTop: activeTab===t.id ? '6px' : '0',
           }}>
-            <span>{t.icon}</span> {t.label}
+            <span style={{fontSize:18}}>{t.icon}</span> {t.label}
           </button>
         ))}
       </div>
